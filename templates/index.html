@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Prediksi Penduduk - Monte Carlo</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-1: #0a0f29;
+            --bg-2: #141b3a;
+            --card: rgba(255, 255, 255, 0.08);
+            --text: #e8eaf6;
+            --muted: #a9b1d6;
+            --primary: #7c3aed;
+            --accent: #22d3ee;
+            --shadow: 0 12px 50px rgba(0, 0, 0, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.2), transparent 30%),
+                        radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.15), transparent 25%),
+                        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+            color: var(--text);
+            font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+
+        .container-custom {
+            max-width: 1080px;
+        }
+
+        .glass-card {
+            background: var(--card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            padding: 22px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .hero {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.25), rgba(34, 211, 238, 0.15));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: var(--shadow);
+        }
+
+        .badge-soft {
+            background: rgba(124, 58, 237, 0.15);
+            color: #d0bcff;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            border: none;
+            color: white;
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn-gradient:hover {
+            filter: brightness(1.05);
+            color: white;
+        }
+
+        .form-control, .form-select {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 0.25rem rgba(34, 211, 238, 0.25);
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text);
+        }
+
+        table {
+            color: var(--text);
+        }
+
+        thead th {
+            background: rgba(124, 58, 237, 0.25) !important;
+            color: #f4f4ff !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        tbody tr {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .number-highlight {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 1px;
+        }
+
+        .section-title {
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .tagline {
+            color: var(--muted);
+        }
+
+        canvas {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 14px;
+            padding: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container container-custom py-5">
+
+    <!-- HERO -->
+    <div class="hero mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="badge-soft mb-2">Monte Carlo Forecast</div>
+                <h1 class="fw-bold mb-1">Prediksi Jumlah Penduduk</h1>
+                <p class="tagline mb-0">Lihat tren historis dan proyeksi populasi dengan simulasi Monte Carlo.</p>
+            </div>
+            <div class="text-end">
+                <span class="badge rounded-pill text-bg-light text-dark px-3 py-2">Real-time chart</span>
+                <span class="badge rounded-pill text-bg-info px-3 py-2">Interaktif</span>
+            </div>
+        </div>
+
+        <!-- FORM INPUT TAHUN TARGET -->
+        <form method="POST" class="row g-3 align-items-end mt-3">
+            <div class="col-md-6 col-lg-5">
+                <label class="form-label">Prediksi pada tahun berapa?</label>
+                <input type="number" class="form-control" name="target_year" placeholder="Contoh: 2025" required>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label class="form-label">Simulasi</label>
+                <select class="form-select" disabled>
+                    <option>Monte Carlo</option>
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-2 d-grid">
+                <button class="btn btn-gradient py-3">Prediksi Sekarang</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- HASIL PREDIKSI -->
+    {% if hasil_tahun %}
+    <div class="glass-card text-center mb-4">
+        <p class="text-uppercase text-muted mb-1" style="letter-spacing: 1px;">Prediksi tahun tujuan</p>
+        <div class="number-highlight">{{ hasil_tahun.jumlah }}</div>
+        <div class="tagline">Estimasi populasi tahun {{ hasil_tahun.tahun }}</div>
+    </div>
+    {% endif %}
+
+    <!-- DATA HISTORIS -->
+    {% if data_history %}
+    <div class="glass-card mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="section-title mb-0">Data Historis Penduduk</h4>
+            <small class="tagline">Sumber: dataset penduduk bersih</small>
+        </div>
+        <div class="table-responsive mt-3">
+            <table class="table table-borderless align-middle">
+                <thead>
+                    <tr><th>Tahun</th><th>Jumlah Penduduk</th></tr>
+                </thead>
+                <tbody>
+                    {% for row in data_history %}
+                    <tr>
+                        <td class="fw-semibold">{{ row.Tahun }}</td>
+                        <td>{{ row.Jumlah_Penduduk }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- DATA PREDIKSI -->
+    {% if data_prediksi %}
+    <div class="glass-card mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="section-title mb-0">Hasil Prediksi Tahunan</h4>
+            <small class="tagline">Menggunakan distribusi acak dan simulasi</small>
+        </div>
+        <div class="table-responsive mt-3">
+            <table class="table table-borderless align-middle">
+                <thead>
+                    <tr><th>Tahun</th><th>Prediksi</th></tr>
+                </thead>
+                <tbody>
+                    {% for row in data_prediksi %}
+                    <tr>
+                        <td class="fw-semibold">{{ row.Tahun }}</td>
+                        <td>{{ row.Jumlah }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- GRAFIK -->
+    {% if data_prediksi %}
+    <div class="glass-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="section-title mb-0">Grafik Prediksi</h4>
+            <small class="tagline">Perbandingan historis vs estimasi</small>
+        </div>
+        <canvas id="chart" height="120"></canvas>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    {% if data_history %}
+    const histLabels = [{% for r in data_history %} "{{r.Tahun}}", {% endfor %}];
+    const histValues = [{% for r in data_history %} {{r.Jumlah_Penduduk.replace(',', '')}}, {% endfor %}];
+    {% endif %}
+
+    {% if data_prediksi %}
+    const predLabels = [{% for r in data_prediksi %}"{{r.Tahun}}",{% endfor %}];
+    const predValues = [{% for r in data_prediksi %}{{r.Jumlah.replace(',', '')}}, {% endfor %}];
+    {% endif %}
+
+    {% if data_prediksi %}
+    const ctx = document.getElementById("chart");
+    const mergedLabels = histLabels.concat(predLabels);
+
+    new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: mergedLabels,
+            datasets: [
+                {
+                    label: "Historis",
+                    data: histValues.concat(Array(predValues.length).fill(null)),
+                    borderColor: "#22d3ee",
+                    backgroundColor: "rgba(34, 211, 238, 0.08)",
+                    borderWidth: 3,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointBackgroundColor: "#22d3ee"
+                },
+                {
+                    label: "Prediksi",
+                    data: Array(histValues.length).fill(null).concat(predValues),
+                    borderColor: "#7c3aed",
+                    backgroundColor: "rgba(124, 58, 237, 0.12)",
+                    borderWidth: 3,
+                    borderDash: [6, 4],
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointBackgroundColor: "#7c3aed"
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    labels: { color: "#e8eaf6" }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => ` ${ctx.dataset.label}: ${ctx.formattedValue}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: "#a9b1d6" },
+                    grid: { color: "rgba(255,255,255,0.05)" }
+                },
+                y: {
+                    ticks: { color: "#a9b1d6" },
+                    grid: { color: "rgba(255,255,255,0.05)" }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+
+</body>
+</html>
